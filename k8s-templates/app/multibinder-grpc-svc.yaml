@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: multibinder-grpc
+  labels:
+    app: multibinder-grpc
+    component: multibinder-grpc
+    type: streaming-spike
+    spring-deployment-id: multibinder-grpc
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      name: multibinder-grpc
+      targetPort: 8080
+      protocol: TCP
+    - port: 8089
+      name: flink-ui
+      targetPort: 8089
+      protocol: TCP
+
+  selector:
+    app: uppercase-with-multibinder-grpc
+    component: uppercase-with-multibinder-grpc

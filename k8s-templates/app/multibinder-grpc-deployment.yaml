@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uppercase-with-multibinder-grpc
+  labels:
+    app: uppercase-with-multibinder-grpc
+    type: streaming-spike
+    component: uppercase-with-multibinder-grpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uppercase-with-multibinder-grpc
+  template:
+    metadata:
+      labels:
+        app: uppercase-with-multibinder-grpc
+        component: uppercase-with-multibinder-grpc
+    spec:
+      containers:
+        - name: uppercase-grpc
+          image: tzolov/poc-uppercase-grpc:latest
+          env:
+            - name: SPRING_RSOCKET_SERVER_PORT
+              value: "7000"
+        - name: sql-aggregator
+          image: tzolov/poc-sql-aggregator:latest
+          resources:
+            limits:
+              memory: "4Gi"
+            requests:
+              memory: "2Gi"
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          ports:
+            - containerPort: 8080
+            - containerPort: 8089
+          env:
+            - name: SQL_AGGREGATION_KAFKASERVER
+              value: kafka:9092
+            - name: SQL_AGGREGATION_SCHEMAREGISTRY
+              value: http://s-registry:8081
+        - name: multibinder-grpc
+          image: tzolov/poc-multibinder-grpc:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
+              value: kafka:9092
+            - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_ZKNODES
+              value: kafka-zk:2181
+            - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_REPLICATIONFACTOR
+              value: "1"
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
+            - name: SPRING_RABBITMQ_USERNAME
+              value: guest
+            - name: SPRING_RABBITMQ_PASSWORD
+              value: guest
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /actuator/info
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: sql-aggregator
+            items:
+              - key: application.yaml
+                path: application.yaml

@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sql-aggregator
+  labels:
+    app: sql-aggregator
+    type: streaming-spike
+    component: sql-aggregator
+data:
+  application.yaml: |-
+    sql:
+      aggregation:
+        executeSql:
+        - CREATE TABLE Songs (
+            `the_kafka_key` STRING,
+            `id` BIGINT NOT NULL,
+            `album` STRING,
+            `artist` STRING,
+            `name` STRING,
+            `genre` STRING NOT NULL,
+            `proctime` AS PROCTIME()
+          ) WITH (
+            'connector' = 'kafka',
+            'topic' = '${sql.aggregation.songsTopic}',
+            'properties.bootstrap.servers' = '${sql.aggregation.kafkaServer}',
+            'properties.group.id' = 'testGroup',
+            'key.format' = 'raw',
+            'key.fields' = 'the_kafka_key',
+            'value.format' = 'avro-confluent',
+            'value.avro-confluent.url' = '${sql.aggregation.schemaRegistry}',
+            'value.fields-include' = 'EXCEPT_KEY',
+            'scan.startup.mode' = 'earliest-offset'
+          )
+        - CREATE TABLE PlayEvents (
+            `event_time` TIMESTAMP(3) METADATA FROM 'timestamp',
+            `the_kafka_key` STRING,
+            `song_id` BIGINT NOT NULL,
+            `duration` BIGINT,
+            WATERMARK FOR `event_time` AS `event_time` - INTERVAL '30' SECONDS
+          ) WITH (
+            'connector' = 'kafka',
+            'topic' = '${sql.aggregation.playEventsTopic}',
+            'properties.bootstrap.servers' = '${sql.aggregation.kafkaServer}',
+            'key.format' = 'raw',
+            'key.fields' = 'the_kafka_key',
+            'value.format' = 'avro-confluent',
+            'value.avro-confluent.url' = '${sql.aggregation.schemaRegistry}',
+            'value.fields-include' = 'EXCEPT_KEY',
+            'scan.startup.mode' = 'earliest-offset'
+          )
+        - CREATE TABLE SongPlays (
+            `song_id` BIGINT NOT NULL,
+            `album` STRING,
+            `artist` STRING,
+            `name` STRING,
+            `genre` STRING NOT NULL,
+            `duration` BIGINT,
+            `event_time` TIMESTAMP(3) NOT NULL,
+            WATERMARK FOR `event_time` AS `event_time` - INTERVAL '1' SECOND
+          ) WITH (
+            'connector' = 'kafka',
+            'topic' = 'play-events-genre-join',
+            'properties.bootstrap.servers' = '${sql.aggregation.kafkaServer}',
+            'properties.group.id' = 'testGroup3',
+            'scan.startup.mode' = 'earliest-offset',
+            'key.format' = 'json',
+            'key.fields' = 'song_id',
+            'key.json.ignore-parse-errors' = 'true',
+            'value.format' = 'json',
+            'value.json.fail-on-missing-field' = 'false',
+            'value.fields-include' = 'ALL'
+          )
+        - CREATE TABLE TopKSongsPerGenre (
+            `window_start` TIMESTAMP(3),
+            `window_end` TIMESTAMP(3),
+            `song_id` BIGINT NOT NULL,
+            `name` STRING NOT NULL,
+            `genre` STRING NOT NULL,
+            `song_play_count` BIGINT,
+            PRIMARY KEY (`window_start`, `window_end`, `song_id`, `genre`) NOT ENFORCED
+          ) WITH (
+            'connector' = 'upsert-kafka',
+            'topic' = '${sql.aggregation.outputSqlAggregateTopic}',
+            'properties.bootstrap.servers' = '${sql.aggregation.kafkaServer}',
+            'key.format' = 'json',
+            'key.json.ignore-parse-errors' = 'true',
+            'value.format' = 'json',
+            'value.json.fail-on-missing-field' = 'false',
+            'value.fields-include' = 'ALL'
+          )
+        - INSERT INTO SongPlays
+            SELECT Plays.song_id, Songs.album, Songs.artist, Songs.name, Songs.genre, Plays.duration, Plays.event_time
+            FROM (SELECT * FROM PlayEvents WHERE duration >= 30000) AS Plays
+            INNER JOIN Songs ON Plays.song_id = Songs.id
+        - INSERT INTO TopKSongsPerGenre
+            SELECT window_start, window_end, song_id, name, genre, play_count
+            FROM (
+              SELECT *,
+                ROW_NUMBER() OVER (PARTITION BY window_start, window_end, genre ORDER BY play_count DESC) AS row_num
+              FROM (
+                SELECT window_start, window_end, song_id, name, genre, COUNT(*) AS play_count
+                FROM TABLE(
+                  TUMBLE(TABLE SongPlays, DESCRIPTOR(event_time), INTERVAL '60' SECONDS))
+                GROUP BY window_start, window_end, song_id, name, genre
+              )
+            ) WHERE row_num <= 3
