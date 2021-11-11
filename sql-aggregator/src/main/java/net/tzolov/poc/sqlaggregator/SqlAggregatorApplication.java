@@ -44,12 +44,12 @@ public class SqlAggregatorApplication implements CommandLineRunner {
 
         System.out.println("Parallelism: " + env.getConfig().getParallelism());
 
-        Thread.sleep(5000);
 
         for (String sql : properties.getExecuteSql()) {
             tableEnv.executeSql(sql);
         }
 
+        Thread.sleep(5000);
         tableEnv.sqlQuery("SELECT * from TopKSongsPerGenre").execute().print();
     }
 }
