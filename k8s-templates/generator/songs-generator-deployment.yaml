@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: songs-generator
+  labels:
+    app: songs-generator
+    type: streaming-spike
+    component: songs-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: songs-generator
+  template:
+    metadata:
+      labels:
+        app: songs-generator
+        component: songs-generator
+    spec:
+      containers:
+        - name: songs-generator
+          image: tzolov/poc-songs-generator:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PLAY_SONGS_GENERATOR_KAFKASERVER
+              value: kafka:9092
+            - name: PLAY_SONGS_GENERATOR_SCHEMAREGISTRYSERVER
+              value: http://s-registry:8081
+            - name: PLAY_SONGS_GENERATOR_WAITBETWEENPLAYSONGMS
+              value: 200

@@ -44,7 +44,7 @@ kubectl apply -f ./k8s-templates/app
 
 ```
 kubectl port-forward svc/multibinder-grpc 8089:8089
-```9
+```
 
 ```
 /opt/kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
