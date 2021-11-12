@@ -92,7 +92,6 @@ public class PlaySongsGeneratorApplication implements CommandLineRunner {
         return songsTemplate;
     }
 
-
     @Bean
     public KafkaTemplate<String, PlayEvent> playEventsTemplate(PlaySongsGeneratorApplicationProperties properties) {
 
