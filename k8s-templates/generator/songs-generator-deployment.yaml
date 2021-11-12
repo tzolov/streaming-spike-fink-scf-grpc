@@ -28,4 +28,4 @@ spec:
             - name: PLAY_SONGS_GENERATOR_SCHEMAREGISTRYSERVER
               value: http://s-registry:8081
             - name: PLAY_SONGS_GENERATOR_WAITBETWEENPLAYSONGMS
-              value: 200
+              value: '200'

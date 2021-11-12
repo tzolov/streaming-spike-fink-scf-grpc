@@ -61,6 +61,7 @@ data:
             'connector' = 'kafka',
             'topic' = 'play-events-genre-join',
             'properties.bootstrap.servers' = '${sql.aggregation.kafkaServer}',
+            'properties.allow.auto.create.topics' = 'true',
             'properties.group.id' = 'testGroup3',
             'scan.startup.mode' = 'earliest-offset',
             'key.format' = 'json',
@@ -82,6 +83,7 @@ data:
             'connector' = 'upsert-kafka',
             'topic' = '${sql.aggregation.outputSqlAggregateTopic}',
             'properties.bootstrap.servers' = '${sql.aggregation.kafkaServer}',
+            'properties.allow.auto.create.topics' = 'true',
             'key.format' = 'json',
             'key.json.ignore-parse-errors' = 'true',
             'value.format' = 'json',
@@ -104,3 +106,4 @@ data:
                 GROUP BY window_start, window_end, song_id, name, genre
               )
             ) WHERE row_num <= 3
+        continuousQuery: SELECT * FROM TopKSongsPerGenre
