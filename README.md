@@ -1,14 +1,21 @@
 # Overview
 
-Mock music ranking application to showcase real-time streaming with Apache Flink Streaming SQL and Spring Cloud Function.
+Mock music ranking application to showcase real-time streaming with (embedded) Apache Flink Streaming SQL and Spring Cloud Functions.
+It demos how to integrate complex SQL streaming aggregating ([Apache Flink](https://nightlies.apache.org/flink/flink-docs-master/docs/dev/table/sql/queries/overview/)) 
+and [Spring Cloud Function](https://spring.io/projects/spring-cloud-function), using multiple binders (Kafka & Rabbit) and polyglot User Defined Functions over [gRPC SCF Adepter](https://github.com/spring-cloud/spring-cloud-function/tree/main/spring-cloud-function-adapters/spring-cloud-function-grpc#two-operation-modes-clientserver).   
 
-![plot](./docs/play-songs-ranking-pipeline_v2.png)
+![pipeline](./docs/play-songs-ranking-pipeline_v2.png)
 
 The streaming Music application demonstrates how to build of a simple music charts application that continuously computes, 
 in real-time, the latest charts such as latest Top 3 songs per music genre. 
-The application's input data is in 
-Avro format, hence the use of Confluent Schema Registry, and comes from two sources: a stream of play events 
-(think: "song X was played") and a stream of song metadata ("song X was written by artist Y").
+The application's input data is in Avro format, hence the use of Confluent Schema Registry, and comes from two Kafka sources (e.g. topics): 
+a stream of play events (think: "song X was played") and a stream of song metadata ("song X was written by artist Y").
+
+* The `Streaming SQL Aggregation` app leverages Apache Flink to compute the top 3 songs per genre every 1 min. 
+It uses the Flink SQL streaming API as explained here: [sql-aggregator](./sql-aggregator). 
+The computed aggregate (in JSON format) is streamed to another Kafka topic: `dataIn`.
+* The `Multi-Binder Spring Cloud Function` app receives its input from the `dataIn` Kafka topics and emits its result to a `dataOut` RabbitMQ channel.
+The multibinder send the received `dataIn` messages to User Defined Function over gRPC. the response form teh UDF is then send to the `dataOut` RabbitMQ channel.  
 
 (The use case is inspired by the https://github.com/confluentinc/examples/tree/6.0.4-post/music)
 
@@ -50,7 +57,6 @@ kubectl apply -f ./k8s-templates/app
 /opt/kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
 /opt/kafka/bin/kafka-console-consumer.sh --topic song-feed --from-beginning --bootstrap-server localhost:9092
 ```
-
 
 #### 6. Delete cluster 
 
