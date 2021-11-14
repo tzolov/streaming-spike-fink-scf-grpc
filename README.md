@@ -43,6 +43,9 @@ From within the root folder run:
 ```
 kubectl apply -f ./k8s-templates/generator
 ```
+The generator streams (once) 12 songs to the `songs-feed` topic (using the Song avro schema) and 
+then will continuously stream play events to the `play-events` topic. 
+You can configure the topic names and the streaming rate.
 
 #### 4. Deploy the Music stream processing app
 
