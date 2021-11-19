@@ -10,8 +10,8 @@ spring:
           binder: kafka
         proxy-out-0:
           destination: dataOut
-          binder: kafka
-#          binder: rabbit
+#          binder: kafka
+          binder: rabbit
     function:
       definition: proxy
       grpc:

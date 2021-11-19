@@ -66,7 +66,7 @@ public class PlaySongsGeneratorApplicationProperties {
     public void setMinChartableDuration(Long minChartableDuration) {
         this.minChartableDuration = minChartableDuration;
     }
-
+    
     public Map<String, Object> getCommonProperties() {
         Map<String, Object> commonProperties = new HashMap<>();
         commonProperties.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, this.getSchemaRegistryServer());

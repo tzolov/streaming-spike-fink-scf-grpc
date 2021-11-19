@@ -37,6 +37,11 @@ public class SqlAggregatorApplicationProperties {
     private String continuousQuery;
 
     /**
+     * (optional) list of executeSql indexes to explain their statements
+     */
+    private List<Integer> explainStatements;
+
+    /**
      * Points to Kafka server. Utility property that can be used inside the executeSql statements to configure Kafka
      * source or sink.
      */
@@ -117,5 +122,13 @@ public class SqlAggregatorApplicationProperties {
 
     public void setContinuousQuery(String continuousQuery) {
         this.continuousQuery = continuousQuery;
+    }
+
+    public List<Integer> getExplainStatements() {
+        return explainStatements;
+    }
+
+    public void setExplainStatements(List<Integer> explainStatements) {
+        this.explainStatements = explainStatements;
     }
 }

@@ -26,6 +26,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -79,6 +80,18 @@ public class SqlAggregatorApplication implements CommandLineRunner {
 
         for (String sql : this.properties.getExecuteSql()) {
             tableEnv.executeSql(sql);
+        }
+
+        if (!CollectionUtils.isEmpty(this.properties.getExplainStatements())) {
+            for (int explainIndex : this.properties.getExplainStatements()) {
+                if (explainIndex < this.properties.getExecuteSql().size()) {
+                    logger.info("Plan explanation for executeSql[" + explainIndex + "]: \n" +
+                                    this.properties.getExecuteSql().get(explainIndex) + "\n" +
+                            tableEnv.explainSql(this.properties.getExecuteSql().get(explainIndex)));
+                } else {
+                    logger.warn("Invalid explain statement index: " + explainIndex);
+                }
+            }
         }
 
         if (StringUtils.hasText(this.properties.getContinuousQuery())) {
