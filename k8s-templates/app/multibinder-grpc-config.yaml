@@ -107,4 +107,4 @@ data:
               )
             ) WHERE row_num <= 3
         continuousQuery: SELECT * FROM TopKSongsPerGenre
-        explainStatements=4,5
+        explainStatements: 4,5

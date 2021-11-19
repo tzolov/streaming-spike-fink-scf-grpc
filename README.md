@@ -56,13 +56,30 @@ kubectl apply -f ./k8s-templates/app
 #### 5. Check the topics
 
 Use the `kubectl get all` to find the Kafka broker pod name and then 
-`kubectl exec -it pod/<your-kafka-pod> -- /bin/bash` to SSH to kafka broker container.
+```shell
+kubectl exec -it pod/<your-kafka-pod> -- /bin/bash`
+```
+to SSH to kafka broker container.
 
 From within the kafka-broker container use the bin utils to list the topics or check their content: 
-```
+
+```shell
 /opt/kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
-/opt/kafka/bin/kafka-console-consumer.sh --topic daataIn --from-beginning --bootstrap-server localhost:9092
 ```
+
+```shell
+/opt/kafka/bin/kafka-console-consumer.sh --topic dataIn --from-beginning --bootstrap-server localhost:9092
+```
+
+```shell
+kubectl port-forward svc/rabbitmq 15672:15672
+```
+
+1. Open http://localhost:15672/#/exchanges and you should see the `dataOut` amongst the list.
+2. Open the `Queues` tab and create new queue called `pipelineOut` (use the default configuration).
+3. Open the `Exchang` tab, select the `dataOut` exchange and bind it to the `pipelineOut` queue. 
+Use the `#` as a `Routing key`.
+4. From the `Queue` tab select the `pipelineOut` queue and click the `Get Messages` button.
 
 #### 6. Delete cluster 
 
@@ -75,6 +92,6 @@ kubectl delete cm,pod,deployment,rc,service -l type="streaming-spike"
 ```
 kubectl port-forward svc/s-registry 8081:8081
 kubectl port-forward svc/kafka 9094:9094
-kubectl port-forward svc/rabbitmq 5672:5672
+kubectl port-forward svc/rabbitmq 15672:15672
 kubectl port-forward svc/multibinder-grpc 8089:8089
 ```
